@@ -3,12 +3,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "fsh.h"
 
 #define PROMPT 2
+
+int ntok;	//NUMBER OF TOKENS IN EXPRESSION
 
 char *readline(char *line);
 char **tokline(char *str);
 int execline(char **to_exec);
+int execbuiltin(char **args);
 
 int ntok = 0;
 
@@ -29,11 +33,17 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 	do {
+		ntok = 0;
 		printf("%s", "> ");
-		parsed = tokline(readline(line));
-		status = execline(parsed);
-		free(*parsed);
-		free(parsed);
+		if ((line = readline(line)) == NULL) {
+			status = 1;
+			free(line);
+		} else {
+			parsed = tokline(line);
+			status = execline(parsed);
+			free(*parsed);
+			free(parsed);
+		}
 	} while (status);
 	return 0;
 
@@ -47,11 +57,13 @@ char *readline(char *line) {
 		perror("malloc err");
 		exit(EXIT_FAILURE);
 	}
-	while ((c = fgetc(stdin)) != EOF && c != '\n') {
+	while ((c = fgetc(stdin)) != EOF && c != '\n' && c != '&') {
 		*(line + n) = c;
 		n++;	
 	}
 	*(line + n) = '\0';
+	if (strlen(line) < 2)
+		return NULL;
 	return line;
 
 }
@@ -84,7 +96,7 @@ char **tokline(char *str) {
 		*(toks + ntok) = current_tok;
 		ntok++;
 	}
-	*(toks + ntok) = NULL;
+	*(toks + ntok) = NULL;		//remove latr
 	return toks;
 
 }
@@ -93,24 +105,34 @@ int execline(char **args) {
 
 	pid_t pid, wpid;
 	int check_s;
+	for (int i = 0; i < num_of_builtins; i++)	//IF BUILTIN COMMAND, EXECUTE AS BUILTIN
+		if (strcmp(*args, builtins[i]) == 0)
+			return execbuiltin(args);
 	pid = fork();
 	if (pid == 0) {		//COMMANDS FOR CHILD
-		printf("%s\n", "executing??");
 		if (execvp(*args, args) == -1) {
 			perror("exec err");
 			exit(EXIT_FAILURE);
 		}
-		printf("%s", "executed");
 		exit(1);
 	} else if (pid == -1) {
 		perror("fork err");
 		exit(EXIT_FAILURE);
 	} else {	//COMMANDS FOR PARENT
-		printf("%s\n", "child begun!!");
 		do {
 			wpid = waitpid(pid, &check_s, WUNTRACED);
-		} while (!WIFEXITED(check_s) && WIFSIGNALED(check_s)); 
+		} while (!WIFEXITED(check_s) && !WIFSIGNALED(check_s)); 
 	}
-	printf("%d\n", check_s);
-	return check_s;
+	return 1;
 }
+
+int execbuiltin(char **args) {
+
+	if (strcmp(builtins[0], *args) == 0)
+		return cd(ntok, args);
+	if (strcmp(builtins[1], *args) == 0)
+		exitsh();
+	return PROG_ERR;
+
+}
+
