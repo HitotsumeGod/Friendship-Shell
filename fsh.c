@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include "fsh.h"
 
 #define PROMPT 2
@@ -13,12 +14,15 @@ char *readline(char *line);
 char **tokline(char *str);
 int execline(char **to_exec);
 int execbuiltin(char **args);
+void sigint_handler(int signum);
 
 int main(void) {
 
+	struct sigaction intact;
 	FILE *fptr;
 	char *line, **parsed;
 	int c, status;
+	intact.sa_handler = sigint_handler;
 	printf("%s\n", "Welcome to the only shell for true friends! Ban Paku Banzai!");
 	if ((fptr = fopen("FRIEND", "r")) == NULL) {
 		perror("fopen err");
@@ -41,6 +45,10 @@ int main(void) {
 			status = execline(parsed);
 			free(*parsed);
 			free(parsed);
+		}
+		if (sigaction(SIGINT, &intact, NULL) == -1) {
+			perror("");
+			exit(EXIT_FAILURE);
 		}
 	} while (status);
 	return 0;
@@ -109,7 +117,7 @@ int execline(char **args) {
 	pid = fork();
 	if (pid == 0) {		//COMMANDS FOR CHILD
 		if (execvp(*args, args) == -1) {
-			perror("exec err");
+			printf("%s\n", "Not a valid program or FSH command.");
 			exit(EXIT_FAILURE);
 		}
 		exit(1);
@@ -126,10 +134,18 @@ int execline(char **args) {
 
 int execbuiltin(char **args) {
 
-	if (strcmp(builtins[0], *args) == 0)
+	if (strcmp(builtins[0], *args) == 0)	//CD
 		return cd(ntok, args);
-	if (strcmp(builtins[1], *args) == 0)
+	if (strcmp(builtins[1], *args) == 0)	//EXIT
 		exitsh();
+	if (strcmp(builtins[2], *args) == 0)	//HELP
+		helpsh();
 	return PROG_ERR;
+
+}
+
+void sigint_handler(int s) {
+
+	printf("\n");
 
 }

@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include "fsh.h"
 
-char *builtins[] = {"cd", "exit", "AND", "expo", "dj"};
-int num_of_builtins = 5;
+char *builtins[] = {"cd", "exit", "help", "AND", "expo", "dj"};
+int num_of_builtins = 6;
 
 int cd(int argc, char **args) {
 
@@ -25,6 +25,12 @@ void exitsh(void) {
 
 	printf("%s\n", "Exiting the shell.");
 	exit(PROG_FIN);
+
+}
+
+void helpsh(void) {
+
+	printf("| %s\n| %s\n| %s\n", "To leave the shell, use the 'exit' command.", "To get a reminder about the next World Expo, use the 'expo' command.", "To listen to some music, use the 'dj' command.");
 
 }
 int expo(int argc, char **args);
