@@ -1,9 +1,11 @@
 CC=gcc
-DEPS = fsh.h
-OBJ = fsh.o builtins.o
+SRC=src
+BUILD=build
+DEPS = $(SRC)/headers/fsh.h
+OBJ = $(BUILD)/fsh.o $(BUILD)/builtins.o
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< -g
+$(BUILD)/%.o: $(SRC)/main/%.c $(DEPS) 
+	$(CC) -c -o $@ $< -I$(SRC)/headers
 
 fsh: $(OBJ)
 	$(CC) -o $@ $^ 

@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include "fsh.h"
+#include <fsh.h>
 
 #define PROMPT 2
 
@@ -24,7 +24,7 @@ int main(void) {
 	int c, status;
 	intact.sa_handler = sigint_handler;
 	printf("%s\n", "Welcome to the only shell for true friends! Ban Paku Banzai!");
-	if ((fptr = fopen("FRIEND", "r")) == NULL) {
+	if ((fptr = fopen("src/misc/FRIEND", "r")) == NULL) {
 		perror("fopen err");
 		exit(EXIT_FAILURE);
 	}

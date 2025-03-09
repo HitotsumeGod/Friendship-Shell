@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "fsh.h"
+#include <fsh.h>
 
 char *builtins[] = {"cd", "exit", "help", "AND", "expo", "dj"};
 int num_of_builtins = 6;
