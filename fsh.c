@@ -16,7 +16,7 @@ int main(void) {
 
 	FILE *fptr;
 	char *line, **parsed;
-	int c;
+	int c, status;
 	printf("%s\n", "Welcome to the only shell for true friends! Ban Paku Banzai!");
 	if ((fptr = fopen("FRIEND", "r")) == NULL) {
 		perror("fopen err");
@@ -28,21 +28,30 @@ int main(void) {
 		perror("fclose err");
 		exit(EXIT_FAILURE);
 	}
-	parsed = tokline(readline(line));
-	execline(parsed);
-	free(*parsed);
-	free(parsed);
+	do {
+		printf("%s", "> ");
+		parsed = tokline(readline(line));
+		status = execline(parsed);
+		free(*parsed);
+		free(parsed);
+	} while (status);
 	return 0;
 
 }
 
 char *readline(char *line) {
 
-	size_t bufsize = 0;
-	if (getline(&line, &bufsize, stdin) == -1) {
-		perror("getline err");
+	size_t bufsize = 2;
+	int c, n = 0;
+	if ((line = malloc(sizeof(char) * bufsize)) == NULL) {
+		perror("malloc err");
 		exit(EXIT_FAILURE);
 	}
+	while ((c = fgetc(stdin)) != EOF && c != '\n') {
+		*(line + n) = c;
+		n++;	
+	}
+	*(line + n) = '\0';
 	return line;
 
 }
@@ -86,17 +95,22 @@ int execline(char **args) {
 	int check_s;
 	pid = fork();
 	if (pid == 0) {		//COMMANDS FOR CHILD
+		printf("%s\n", "executing??");
 		if (execvp(*args, args) == -1) {
 			perror("exec err");
 			exit(EXIT_FAILURE);
 		}
+		printf("%s", "executed");
+		exit(1);
 	} else if (pid == -1) {
 		perror("fork err");
 		exit(EXIT_FAILURE);
 	} else {	//COMMANDS FOR PARENT
+		printf("%s\n", "child begun!!");
 		do {
 			wpid = waitpid(pid, &check_s, WUNTRACED);
 		} while (!WIFEXITED(check_s) && WIFSIGNALED(check_s)); 
 	}
-	return PROMPT;
+	printf("%d\n", check_s);
+	return check_s;
 }
