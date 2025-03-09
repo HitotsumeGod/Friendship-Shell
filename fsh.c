@@ -3,14 +3,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "fsh.h"
 
 #define PROMPT 2
 
 char *readline(char *line);
 char **tokline(char *str);
 int execline(char **to_exec);
-
-int ntok = 0;
+int execbuiltin(char **to_exec);
 
 int main(void) {
 
@@ -61,6 +61,7 @@ char **tokline(char *str) {
 	char **toks, **dummy;
 	char *current_tok;
 	size_t mn = 2;
+	int ntok = 0;
 	if ((toks = malloc(sizeof(char *) * mn)) == NULL) {
 		perror("malloc err");
 		exit(EXIT_FAILURE);
@@ -93,9 +94,11 @@ int execline(char **args) {
 
 	pid_t pid, wpid;
 	int check_s;
+	for (int i = 0; i < 4; i++)	//IF BUILTIN COMMAND, EXECUTE AS BUILTIN
+		if (strcmp(*args, builtins[i]) == 0)
+			return execbuiltin(args);
 	pid = fork();
 	if (pid == 0) {		//COMMANDS FOR CHILD
-		printf("%s\n", "executing??");
 		if (execvp(*args, args) == -1) {
 			perror("exec err");
 			exit(EXIT_FAILURE);
@@ -106,11 +109,12 @@ int execline(char **args) {
 		perror("fork err");
 		exit(EXIT_FAILURE);
 	} else {	//COMMANDS FOR PARENT
-		printf("%s\n", "child begun!!");
 		do {
 			wpid = waitpid(pid, &check_s, WUNTRACED);
-		} while (!WIFEXITED(check_s) && WIFSIGNALED(check_s)); 
+		} while (!WIFEXITED(check_s) && !WIFSIGNALED(check_s)); 
 	}
-	printf("%d\n", check_s);
-	return check_s;
+	return 2;
 }
+
+int execbuiltin(char **args) {}
+
