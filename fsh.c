@@ -14,8 +14,6 @@ char **tokline(char *str);
 int execline(char **to_exec);
 int execbuiltin(char **args);
 
-int ntok = 0;
-
 int main(void) {
 
 	FILE *fptr;
@@ -135,4 +133,3 @@ int execbuiltin(char **args) {
 	return PROG_ERR;
 
 }
-
