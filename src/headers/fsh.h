@@ -1,8 +1,18 @@
-#ifndef FSH_C
-#define FSH_C
+#ifndef __FSH_C__
+#define __FSH_C__
+
 #define PROG_FIN 0
 #define PROG_ERR 1
 #define PROG_SUCCESS 2
+
+struct arglist {
+	char *progname;		//NAME OF PROGRAM/BUILTIN
+	char **args;		//NULL-TERMINATED VECTOR OF ARGUMENTS FOR EXECVP
+	struct arglist next;
+};
+
+typedef struct arglist arglist;
+
 extern char *builtins[];
 extern int num_of_builtins;
 

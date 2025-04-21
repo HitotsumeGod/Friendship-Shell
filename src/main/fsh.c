@@ -4,16 +4,16 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <fsh.h>
+#include "fsh.h"
 
 #define PROMPT 2
 
 int ntok;	//NUMBER OF TOKENS IN EXPRESSION
 
 char *readline(char *line);
-char **tokline(char *str);
-int execline(char **to_exec);
-int execbuiltin(char **args);
+arglist *tokline(char *str);
+int execline(arglist *argbox);
+int execbuiltin(arglist *argbox);
 void sigint_handler(int signum);
 
 int main(void) {
@@ -21,6 +21,7 @@ int main(void) {
 	struct sigaction intact;
 	char *line, **parsed;
 	int c, status;
+
 	intact.sa_handler = sigint_handler;
 	printf("%s\n", "Welcome to the only shell for true friends! Ban Paku Banzai!");
 	printf("\n\n                                                        .\n                                                     :@@@@@\n                                                     @@  :@@\n                                                     @:   @@\n                                        @=          .@    @@\n                                        @@          .@    @@      %%\n                              @:        @@+  .=*#%%@@@@    @@     %%@.\n                              @@.     -%%@@@@@@@@@@@@@@    @@@@# #@@\n                              -@@*@@@@@@@@*.        @@.   @@@@@@@@@\n                    @        .@@@@@@*         .@@@@ %%@-   @@    =@@@@@     @%% \n                    %%@-   =@@@@@=       @@@@@@@+  @@@@#   @@+       #@@@@+@@\n                     %%@@@@@@#        .-@+   @@@    -@@@   *@%%          @@@@%%\n                    .@@@@%%        *@@@@@-    =@%%    .@@   .@@            #@@@\n          .       -@@@@           @*   =@*     @%%     %%    @@              *@@@    #@\n          @%%    *@@@%%             @@     @%%                -@+               *@@@@@@*\n           @@@@@@@:               -@:       -=       =@     @@                 *@@@@      .@\n     .=%%@@@@@@@*                   @@       .@@@@@@@%%@*     @@                   *@@@@    @%%\n    @@@@@@@@:                      @@  @@=@@@*      .@@#  @.@@                     .@@@@@@@.\n     #@@@@#                        *@  @@@.  *=    #@. +@@# @@                         *@@@@@@@-\n        @@@@@                      =@@@-    %%    .   +*  :@@@@                           #@@@@@\n          :@@@@                    +@+     %%  .=  :*  @    :@@                        =@@@@@#\n            .@@@@                  #@@=    #= :+  .%%  @    %%@@                      @@@@@-\n              #@@@#                #@:@@=   @.  -=   #-  =@@@@                    @@@@@\n             %%@@@@@@               #@:  @@*  =@:  .@@  .@@ #@@                  @@@@@@@@\n            @@@-  @@@+             .@#    @@@#.     +@@@@  @@#                %%@@@-   .@@.\n           *@.     +@@@             @@*  .=   %%@@@@@-    * @@-              -@@@-       -#\n                     %%@@@            @@=         @        +@@             .@@@@\n                     #@@@@@           @@%%                .@@:           -@@@@@@@\n                    @@@  @@@@:         @@@.              @@%%          #@@@*   @@@\n                   *@      *@@@@+    #@@@@@@@@@@@@@@@@@@@@@@@@     #@@@@-      .@\n                             :@@@@@@@@@@+                  @@@ =@@@@@@@\n                             @@:  -@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:  @@+\n                            :@:     @@@     ....     .:.     @@@      @@\n                             -      @@@                      @@@       .\n                                    -.                       .:\n\n");
@@ -64,12 +65,13 @@ char *readline(char *line) {
 
 }
 
-char **tokline(char *str) {
+arglist *tokline(char *str) {
 
 	char **toks, **dummy;
 	char *current_tok;
+	arglist *azg;
 	size_t mn = 2;
-	if ((toks = malloc(sizeof(char *) * mn)) == NULL) {
+	if ((toks = malloc(sizeof(char *) * mn)) == NULL || azg = malloc(sizeof(arglist)) == NULL) {
 		perror("malloc err");
 		exit(EXIT_FAILURE);
 	}
@@ -93,33 +95,39 @@ char **tokline(char *str) {
 		ntok++;
 	}
 	*(toks + ntok) = NULL;		//remove latr
-	return toks;
+	azg -> progname = *toks;
+	azg -> argbox = toks;
+	return azg;
 
 }
 
-int execline(char **args) {
+int execline(arglist *azg) {
 
 	pid_t pid, wpid;
-	int check_s;
-	for (int i = 0; i < num_of_builtins; i++)	//IF BUILTIN COMMAND, EXECUTE AS BUILTIN
-		if (strcmp(*args, builtins[i]) == 0)
-			return execbuiltin(args);
-	pid = fork();
-	if (pid == 0) {		//COMMANDS FOR CHILD
-		if (execvp(*args, args) == -1) {
-			printf("%s\n", "Not a valid program or FSH command.");
+	int check_s, n;
+
+	n = 0;
+	while (*(azg + (n++)) != NULL) {		//FOR EACH COMMAND IN THE BOX, EXECUTE
+		for (int i = 0; i < num_of_builtins; i++)	//IF BUILTIN COMMAND, EXECUTE AS BUILTIN
+			if (strcmp(*args, builtins[i]) == 0)
+				return execbuiltin((azg + n) -> argbox);
+		pid = fork();
+		if (pid == 0) {		//COMMANDS FOR CHILD
+			if (execvp((azg + n) -> progname, (azg + n) -> argbox) == -1) {
+				printf("%s\n", "Not a valid program or FSH command.");
+				exit(EXIT_FAILURE);
+			}
+			exit(0);
+		} else if (pid == -1) {
+			perror("fork err");
 			exit(EXIT_FAILURE);
+		} else {	//COMMANDS FOR PARENT
+			do {
+				wpid = waitpid(pid, &check_s, WUNTRACED);
+			} while (!WIFEXITED(check_s) && !WIFSIGNALED(check_s)); 
 		}
-		exit(1);
-	} else if (pid == -1) {
-		perror("fork err");
-		exit(EXIT_FAILURE);
-	} else {	//COMMANDS FOR PARENT
-		do {
-			wpid = waitpid(pid, &check_s, WUNTRACED);
-		} while (!WIFEXITED(check_s) && !WIFSIGNALED(check_s)); 
 	}
-	return 1;
+	return 0;
 }
 
 int execbuiltin(char **args) {

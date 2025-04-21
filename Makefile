@@ -1,11 +1,9 @@
 CC=gcc
-SRC=src
-BUILD=build
-DEPS = $(SRC)/headers/fsh.h
-OBJ = $(BUILD)/fsh.o $(BUILD)/builtins.o
+SRC=src/main
+DEPS=src/headers
+SRS=$(SRC)/fsh.c $(SRC)/builtins.c
 
-$(BUILD)/%.o: $(SRC)/main/%.c $(DEPS) 
-	$(CC) -c -o $@ $< -I$(SRC)/headers
-
-fsh: $(OBJ)
-	$(CC) -o $@ $^ 
+fsh: $(SRS)
+	$(CC) -o $@ $^ -I $(DEPS)
+clean: fsh
+	rm -f $^
